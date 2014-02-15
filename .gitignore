@@ -16,3 +16,21 @@
 *.exe
 *.out
 *.app
+
+*.txt
+*.log
+*.d
+
+# vim swap file
+*.swap
+# ctags
+tags
+# debug file
+*.src
+#global file
+GPATH
+GRTAGS
+GTAGS
+
+.*
+i2c

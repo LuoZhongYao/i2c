@@ -10,8 +10,8 @@
 
 // configure
 #define WLAN_USE_DCDC
-#define WLAN_FOR_CTA
-#define WLAN_USE_CRYSTAL
+//#define WLAN_FOR_CTA
+//#define WLAN_USE_CRYSTAL
 
 
 /*! I2C Device 地址 !*/
