@@ -8,6 +8,12 @@
 
 #define msleep(n)   usleep((n) * 1000)
 
+// configure
+#define WLAN_USE_DCDC
+#define WLAN_FOR_CTA
+#define WLAN_USE_CRYSTAL
+
+
 /*! I2C Device 地址 !*/
 #define PMU_ADDR        0x14
 /*! I2C Device内部寄存器地址 !*/
@@ -32,7 +38,7 @@ static const __RF wifi_off_data[] = {
 static const __RF wifi_en_data[] = {
     //item:VerD_wf_on_2012_02_08
     {0x3f, 0x0001},
-#ifdef RDA5990_USE_DCDC     /*houzhen update Mar 15 2012 */
+#ifdef WLAN_USE_DCDC     /*houzhen update Mar 15 2012 */
     {0x23, 0x8FA1},//20111001 higher AVDD voltage to improve EVM to 0x8f21 download current -1db 0x8fA1>>0x8bA1   
 #else
     {0x23, 0x0FA1},
@@ -94,7 +100,7 @@ static const __RF    wifi_rf_init_data_verE[] = {
     {0x20, 0x06E4},
     {0x21, 0x0ACF},//for ver.c20111109,dr dac reset,dr txflt reset
     {0x22, 0x24DC},
-#ifdef RDA5990_FOR_CTA
+#ifdef WLAN_WLAN_CTA
     {0x23, 0x03FF},
 #else
     {0x23, 0x0BFF},
@@ -163,7 +169,7 @@ static const __RF    wifi_rf_init_data[] = {
     {0x20, 0x06E4},
     {0x21, 0x0ACF},//for ver.c20111109,dr dac reset,dr txflt reset
     {0x22, 0x24DC},
-#ifdef RDA5990_FOR_CTA
+#ifdef WLAN_WLAN_CTA
     {0x23, 0x03FF},
 #else
     {0x23, 0x0BFF},
@@ -213,7 +219,7 @@ static const __RF    wifi_uart_debug_data[] = {
 };
 static const __RF    wifi_tm_en_data[] = {
     {0x3F,0x0001},
-#ifdef RDA5990_USE_DCDC     /*houzhen update Mar 15 2012 */
+#ifdef WLAN_USE_DCDC     /*houzhen update Mar 15 2012 */
     {0x23, 0x8FA1},//20111001 higher AVDD voltage to improve EVM to 0x8f21 download current -1db 0x8fA1>>0x8bA1   
 #else
     {0x23, 0x0FA1},
@@ -255,7 +261,7 @@ static const __RF    wifi_tm_rf_init_data[] = {
     {0x20,0x06E4},                                                     
     {0x21,0x0ACF},//for ver.c20111109,dr dac reset,dr txflt reset      
     {0x22,0x24DC},                                                     
-#ifdef RDA5990_FOR_CTA
+#ifdef WLAN_WLAN_CTA
     {0x23, 0x03FF},
 #else
     {0x23, 0x0BFF},
@@ -323,7 +329,7 @@ static int wifi_setup_A2_power(void *i2c,bool enable){
         temp_data = recvI2cWord(i2c,0x22);
         message("*** 0xA2 readback value enable : 0x%X",temp_data);
         temp_data |= 0x0200;        /*! enable reg4_page bit !*/
-#ifdef  RDA5890_USE_CRYSTAL
+#ifdef  WLAN_USE_CRYSTAL
         temp_data &= ~(1 << 14);    /*! disable xen_out !*/
 #endif
         rv = sendI2cWord(i2c,0x22,temp_data);
@@ -387,7 +393,7 @@ failed:
 
 static int wifi_enable(void *i2c){
     int rv;
-    for(int i = 0;i < sizeof(wifi_en_data) / sizeof(__RF);i++){
+    for(unsigned int i = 0;i < sizeof(wifi_en_data) / sizeof(__RF);i++){
         rv = sendI2cWord(i2c,wifi_en_data[i].reg,wifi_en_data[i].value);
         if(rv){
             warning("send wifi enable data failed,data index : %d",i);
@@ -396,6 +402,7 @@ static int wifi_enable(void *i2c){
         if(wifi_en_data[i].reg == 0x31) msleep(10);
     }
     rv = wifi_setup_A2_power(i2c,true);
+    msleep(8);
     if(rv)
         goto failed;
     rv = check_rf_id(i2c);
@@ -433,6 +440,7 @@ static int wifi_rf_init(void *i2c){
             goto failed;
         }
     }
+    msleep(25);
     message("*** wifi initialization succceed!");
     return 0;
 failed:
@@ -442,14 +450,14 @@ failed:
 
 static int wifi_dc_cal(void *i2c){
     int rv;
-    for(int i = 0;i < sizeof(wifi_dc_cal_data) / sizeof(__RF);i++){
+    for(unsigned int i = 0;i < sizeof(wifi_dc_cal_data) / sizeof(__RF);i++){
         rv = sendI2cWord(i2c,wifi_dc_cal_data[i].reg,wifi_dc_cal_data[i].value);
         if(rv){
             warning("send wifi dc cal data failed!index : %d",i);
             goto failed;
         }
     }
-    msleep(20);
+    msleep(70);
     message("*** wifi rf dc cal succceed!");
     return 0;
 failed:
@@ -459,7 +467,7 @@ failed:
 
 static int wifi_dig_reset(void *i2c){
     int rv;
-    for(int i = 0;i < sizeof(wifi_dig_reset_data) / sizeof(__RF);i++){
+    for(unsigned int i = 0;i < sizeof(wifi_dig_reset_data) / sizeof(__RF);i++){
         rv = sendI2cWord(i2c,wifi_dig_reset_data[i].reg,wifi_dig_reset_data[i].value);
         if(rv){
             warning("wifi send dig reset data failed,index : %d",i);
@@ -500,7 +508,7 @@ int wifi_power_off(void *i2c){
             goto failed;
         }
     }
-    for(int i = 0;i < sizeof(wifi_off_data) / sizeof(__RF);i++){
+    for(unsigned int i = 0;i < sizeof(wifi_off_data) / sizeof(__RF);i++){
         rv = sendI2cWord(i2c,wifi_off_data[i].reg,wifi_off_data[i].value);
         if(rv){
             warning("wifi power off,send off data failed!");
@@ -514,6 +522,39 @@ failed:
     return rv;
 }
 
+static int wifi_tm_enable(void *i2c){
+    int rv;
+    msleep(5);
+    for(unsigned int i = 0;i < sizeof(wifi_tm_en_data) / sizeof(__RF);i++){
+        rv = sendI2cWord(i2c,wifi_tm_en_data[i].reg,wifi_tm_en_data[i].value);
+        if(rv){
+            warning("send data to i2c failed!index : %d!",i);
+            goto failed;
+        }
+    }
+    msleep(28);
+    message("*** WLAN enable test mode succceed!");
+    return 0;
+failed:
+    warning("WLAN enable test mode failed!");
+    return rv;
+}
+
+
+static int wifi_tm_rf_init(void *i2c){
+    int rv;
+    for(unsigned int i = 0;i < sizeof(wifi_tm_rf_init_data) / sizeof(__RF);i++){
+        rv = sendI2cWord(i2c,wifi_tm_rf_init_data[i].reg,wifi_tm_rf_init_data[i].value);
+        if(rv)
+            goto failed;
+    }
+    message("*** WLAN test mode rd init succceed!");
+    return 0;
+failed:
+    warning("WLAN test mode rf init failed!error code : %d!",rv);
+    return rv;
+}
+
 int wifi_power_on(void *i2c){
     int rv;
     int (*const wifi_power[])(void *i2c) = {
@@ -522,12 +563,41 @@ int wifi_power_on(void *i2c){
         wifi_dc_cal,
         wifi_dig_reset,
     };
-    for(int i = 0;i < sizeof(wifi_power) / sizeof(wifi_power[0]);i++){
+    for(unsigned int i = 0;i < sizeof(wifi_power) / sizeof(wifi_power[0]);i++){
         rv = wifi_power[i](i2c);
         if(rv) goto failed;
     }
     return 0;
 failed:
+    return rv;
+}
+
+int wifi_enable_debug(void *i2c){
+    int rv;
+    for(unsigned int i = 0;i < sizeof(wifi_uart_debug_data) / sizeof(__RF);i++){
+        rv = sendI2cWord(i2c,wifi_uart_debug_data[i].reg,wifi_uart_debug_data[i].value);
+        if(rv) goto failed;
+    }
+    return 0;
+failed:
+    warning("wifi can't enable debug!send i2c data failed! error code :%d!",rv);
+    return rv;
+}
+
+int wifi_enable_test_mode(void *i2c){
+    int rv;
+    int (*tm_func[])(void *i2c) = {
+        wifi_tm_enable,
+        wifi_tm_rf_init,
+    };
+    for(unsigned int i = 0;i < sizeof(tm_func) / sizeof(tm_func[0]);i++){
+        rv = tm_func[i](i2c);
+        if(rv)
+            goto failed;
+    }
+    return rv;
+failed:
+    warning("WLAN enable test mode fialed;!");
     return rv;
 }
 
